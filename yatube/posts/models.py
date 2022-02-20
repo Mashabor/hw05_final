@@ -75,3 +75,15 @@ class Comment(models.Model):
         'Дата публикации',
         auto_now_add=True
     )
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User,
+        related_name='follower',
+        on_delete=models.CASCADE,
+    )
+    author = models.ForeignKey(
+        User,
+        related_name='following',
+        on_delete=models.CASCADE,
+    )

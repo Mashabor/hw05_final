@@ -11,12 +11,11 @@ from django import forms
 from ..models import Post, Group, Comment
 from ..conf import POSTS_COUNT, TEST_POSTS
 
-TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 User = get_user_model()
 
 
-@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(dir=settings.BASE_DIR))
 class PostViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):

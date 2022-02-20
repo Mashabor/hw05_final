@@ -8,7 +8,8 @@
 {% block content %}
 {% load thumbnail %}
 {% include 'posts/includes/switcher.html' %}
-{% for post in page_obj %}
+
+  {% for post in page_obj %}
   <article>
     <ul>
       <li>
@@ -25,14 +26,14 @@
     <p>{{ post.text }}</p>
     <a href="{% url 'posts:post_detail' post.pk %}">подробная информация</a>
   </article>
-  {% if post.group %}
-  <a href="{% url 'posts:group_posts' post.group.slug %}">
-    все записи группы {{ post.group }}
-  </a>
-  {% endif %}
-  {% if not forloop.last %}
-    <hr>
-  {% endif %}
-{% endfor %}
-{% include 'posts/includes/paginator.html'%}
+    {% if post.group %}
+    <a href="{% url 'posts:group_posts' post.group.slug %}">
+      все записи группы {{ post.group }}
+    </a>
+    {% endif %}
+    {% if not forloop.last %}
+      <hr>
+    {% endif %}
+  {% endfor %}
+  {% include 'posts/includes/paginator.html'%}
 {% endblock %}
