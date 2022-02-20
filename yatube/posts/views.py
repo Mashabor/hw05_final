@@ -28,31 +28,20 @@ def group_posts(request, slug):
     return render(request, 'posts/group_list.html', context)
 
 
-# Здесь код запроса к модели и создание словаря контекста
 def profile(request, username):
-    author = get_object_or_404(User, username=username)
-    page_obj, posts_amount = get_paginator(author.posts.all(), request)
-    follow_count = author.follower.all().count()
-    followers_count = author.following.all().count()
-    following = request.user.is_authenticated and \
-        Follow.objects.filter(
-            user=request.user,
-            author=author
-        ).exists()
-    author_posts = author.posts.all()
-    count = author_posts.count()
+    author_name = get_object_or_404(User, username=username)
+    page_obj, posts_amount = get_paginator(author_name.posts.all(), request)
+    user = request.user
+    following = user.is_authenticated and author_name.following.exists()
     context = {
+        'author': author_name,
+        'posts_amount': posts_amount,
         'page_obj': page_obj,
-        'count': count,
-        'author': author,
-        'follow_count': follow_count,
-        'followers_count': followers_count,
         'following': following
     }
     return render(request, 'posts/profile.html', context)
 
 
-# Здесь код запроса к модели и создание словаря контекста
 def post_detail(request, post_id):
     full_post = get_object_or_404(Post, pk=post_id)
     title = full_post.text
@@ -109,6 +98,7 @@ def post_edit(request, post_id):
     }
     return render(request, template, context)
 
+
 @login_required
 def add_comment(request, post_id):
     post = Post.objects.get(pk=post_id)
@@ -120,22 +110,23 @@ def add_comment(request, post_id):
         comment.save()
     return redirect('posts:post_detail', post_id=post_id)
 
+
 @login_required
 def follow_index(request):
     posts = Post.objects.filter(author__following__user=request.user)
-    page_obj, total_count = get_paginator(Post.objects.all(), request)
+    page_obj, total_count = get_paginator(posts, request)
     context = {
-        'page_obj': page_obj,
-        'follow:': follow
+        'page_obj': page_obj
     }
     return render(request, 'posts/follow.html', context)
+
 
 @login_required
 def profile_follow(request, username):
     author = get_object_or_404(User, username=username)
     if author == request.user:
         return redirect(
-            'profile',
+            'posts:profile',
             username=username
         )
     follower = Follow.objects.filter(
@@ -144,12 +135,12 @@ def profile_follow(request, username):
     ).exists()
     if follower is True:
         return redirect(
-            'profile',
+            'posts:profile',
             username=username
         )
     Follow.objects.create(user=request.user, author=author)
     return redirect(
-        'profile',
+        'posts:profile',
         username=username
     )
 
@@ -159,12 +150,12 @@ def profile_unfollow(request, username):
     author = get_object_or_404(User, username=username)
     if author == request.user:
         return redirect(
-            'profile',
+            'posts:profile',
             username=username
         )
     following = get_object_or_404(Follow, user=request.user, author=author)
     following.delete()
     return redirect(
-        'profile',
+        'posts:profile',
         username=username
     )
