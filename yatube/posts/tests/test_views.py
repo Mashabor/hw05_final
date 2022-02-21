@@ -28,12 +28,12 @@ class PostViewsTests(TestCase):
             slug='test-slug'
         )
         small_gif = (
-             b'\x47\x49\x46\x38\x39\x61\x02\x00'
-             b'\x01\x00\x80\x00\x00\x00\x00\x00'
-             b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-             b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-             b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-             b'\x0A\x00\x3B'
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
         )
         uploaded = SimpleUploadedFile(
             name='small.gif',
@@ -66,7 +66,7 @@ class PostViewsTests(TestCase):
         @classmethod
         def tearDownClass(cls):
             super().tearDownClass()
-            shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+            shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
 
     def test_pages_uses_correct_template(self):
         """в URL-адрес передан соответствующий шаблон."""
@@ -211,14 +211,9 @@ class PostViewsTests(TestCase):
         form_data = {
             'text': 'Комментарий к посту'
         }
-        responce = self.authorized_client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.pk}),
-            data=form_data,
-            follow=True
-        )
         last_comment = Comment.objects.latest('created')
         self.assertRedirects(
-            response, reverse('posts:post_detail',
+            reverse('posts:post_detail',
             kwargs={'post_id': self.post.pk})
         )
         self.assertEqual(Comment.objects.count(), comments_count + 1)
@@ -289,12 +284,10 @@ class PostViewsTests(TestCase):
 
     def test_new_post_showing_for_followers_and_unfollowers(self):
         follow_post = Post.objects.create(
-        text='test-text',
-        author=self.author,
+            text='test-text', author=self.author
         )
         self.authorized_user_following.get(
-            reverse('posts:profile_follow',
-            kwargs={'username': self.author})
+            reverse('posts:profile_follow', kwargs={'username': self.author})
         )
         following_count = (
             Follow.objects.filter(author=self.author).count()
@@ -307,9 +300,15 @@ class PostViewsTests(TestCase):
         )
         self.assertEqual(following_count, 1)
         self.assertIn(follow_post, follower_response.context.get('page_obj'))
-        self.assertNotIn(follow_post, non_follower_response.context.get('page_obj'))
+        self.assertNotIn(
+            follow_post,
+            non_follower_response.context.get('page_obj')
+        )
 
-        self.authorized_user_following.get(reverse('posts:profile_unfollow', kwargs={'username': self.author}))
+        self.authorized_user_following.get(reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': self.author})
+        )
         follow_count = Follow.objects.filter(author=self.author).count()
         self.assertEqual(follow_count, 0)
 

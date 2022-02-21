@@ -56,6 +56,7 @@ class Post(models.Model):
     def __str__(self):
         return self.text[:15]
 
+
 class Comment(models.Model):
     post = models.ForeignKey(
         Post,
@@ -75,6 +76,7 @@ class Comment(models.Model):
         'Дата публикации',
         auto_now_add=True
     )
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
