@@ -213,8 +213,7 @@ class PostViewsTests(TestCase):
         }
         last_comment = Comment.objects.latest('created')
         self.assertRedirects(
-            reverse('posts:post_detail',
-            kwargs={'post_id': self.post.pk})
+            reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
         )
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertEqual(last_comment.text, form_data['text'])
