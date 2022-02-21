@@ -7,42 +7,41 @@
   <main>
     <h1>Все посты пользователя {{ author.username }}</h1>
     <h3>Всего постов: {{ posts_amount }}</h3>
-    {% if following %}
-    <a
-      class="btn btn-lg btn-light"
-      href="{% url 'posts:profile_unfollow' author.username %}" role="button"
-    >
-      Отписаться
-    </a>
-    {% else %}
-      <a
-        class="btn btn-lg btn-primary"
-        href="{% url 'posts:profile_follow' author.username %}" role="button"
-      >
-        Подписаться
-      </a>
-    {% endif %}
-    {% for post in page_obj %}        
-      <article>
-        <ul>
-          <li>
-            Дата публикации: {{ post.pub_date|date:"d E Y" }}
-          </li>
-        </ul>
-        {% thumbnail post.image "960x339" crop="top" upscale=True as im %}
-          <img class="card-img my-2" src="{{ im.url }}">
-        {% endthumbnail %}
-        <p>
-          {{ post.text }}
-        </p>
-        <a href="{% url 'posts:post_detail' post.pk %}">подробная информация </a>
-      </article> 
-      {% if post.group %}       
-        <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы {{ post.group }}</a>
+      {% if following %}
+        <a
+          class="btn btn-lg btn-light"
+          href="{% url 'posts:profile_unfollow' author.username %}" role="button"
+        >
+          Отписаться
+        </a>
+        {% else %}
+          <a
+            class="btn btn-lg btn-primary"
+            href="{% url 'posts:profile_follow' author.username %}" role="button"
+          >
+            Подписаться
+          </a>
       {% endif %}
-      <hr>
+      {% for post in page_obj %}        
+        <article>
+          <ul>
+            <li>
+              Дата публикации: {{ post.pub_date|date:"d E Y" }}
+            </li>
+          </ul>
+          {% thumbnail post.image "960x339" crop="top" upscale=True as im %}
+            <img class="card-img my-2" src="{{ im.url }}">
+          {% endthumbnail %}
+          <p>
+            {{ post.text }}
+          </p>
+          <a href="{% url 'posts:post_detail' post.pk %}">подробная информация </a>
+        </article> 
+        {% if post.group %}       
+          <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы {{ post.group }}</a>
+        {% endif %}
+      {% endfor %}
       <!-- Остальные посты. после последнего нет черты -->
-    {% endfor %}
     {% include 'posts/includes/paginator.html'%}
   </main>
 {% endblock %}

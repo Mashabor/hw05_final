@@ -5,10 +5,11 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.cache import cache
 from django.conf import settings
 from django import forms
 
-from ..models import Post, Group, Comment
+from ..models import Post, Group, Comment, Follow
 from ..conf import POSTS_COUNT, TEST_POSTS
 
 
@@ -51,6 +52,16 @@ class PostViewsTests(TestCase):
         cls.guest_client = Client()
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.author)
+        cls.user_following = User.objects.create_user(
+            username='user-following'
+        )
+        cls.authorized_user_following = Client()
+        cls.authorized_user_following.force_login(cls.user_following)
+        cls.user_unfollowing = User.objects.create_user(
+            username='user-unfollowing'
+        )
+        cls.authorized_user_unfollowing = Client()
+        cls.authorized_user_unfollowing.force_login(cls.user_unfollowing)
 
         @classmethod
         def tearDownClass(cls):
@@ -213,6 +224,94 @@ class PostViewsTests(TestCase):
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertEqual(last_comment.text, form_data['text'])
         self.assertEqual(last_comment.author, self.author)
+
+    def test_cache_index(self):
+        response = self.authorized_client.get(reverse('posts:index'))
+        posts = response.content
+        Post.objects.create(
+            text='test-new-post',
+            author=self.author,
+        )
+        response_old = self.authorized_client.get(
+            reverse('posts:index')
+        )
+        old_posts = response_old.content
+        self.assertEqual(
+            old_posts,
+            posts,
+            'Не возвращает кэшированную страницу.'
+        )
+        cache.clear()
+        response_new = self.authorized_client.get(reverse('posts:index'))
+        new_posts = response_new.content
+        self.assertNotEqual(old_posts, new_posts, 'Кеш не очищен')
+
+    def test_following(self):
+        """Тест подписки на автора."""
+        client = self.authorized_client
+        user = self.user_unfollowing
+        author = self.author
+        client.get(
+            reverse(
+                'posts:profile_follow',
+                args=[author.username]
+            )
+        )
+        follower = Follow.objects.filter(
+            user=user,
+            author=author
+        ).exists()
+        self.assertFalse(
+            follower,
+            'Подписка невозможна'
+        )
+
+    def test_unfollowing(self):
+        """Тест отписки от автора."""
+        client = self.authorized_client
+        user = self.user_following
+        author = self.author
+        client.get(
+            reverse(
+                'posts:profile_unfollow',
+                args=[author.username]
+            ),
+
+        )
+        follower = Follow.objects.filter(
+            user=user,
+            author=author
+        ).exists()
+        self.assertFalse(
+            follower,
+            'Отписка невозможна'
+        )
+
+    def test_new_post_showing_for_followers_and_unfollowers(self):
+        follow_post = Post.objects.create(
+        text='test-text',
+        author=self.author,
+        )
+        self.authorized_user_following.get(
+            reverse('posts:profile_follow',
+            kwargs={'username': self.author})
+        )
+        following_count = (
+            Follow.objects.filter(author=self.author).count()
+        )
+        follower_response = (
+            self.authorized_user_following.get(reverse('posts:follow_index'))
+        )
+        non_follower_response = (
+            self.authorized_user_unfollowing.get(reverse('posts:follow_index'))
+        )
+        self.assertEqual(following_count, 1)
+        self.assertIn(follow_post, follower_response.context.get('page_obj'))
+        self.assertNotIn(follow_post, non_follower_response.context.get('page_obj'))
+
+        self.authorized_user_following.get(reverse('posts:profile_unfollow', kwargs={'username': self.author}))
+        follow_count = Follow.objects.filter(author=self.author).count()
+        self.assertEqual(follow_count, 0)
 
     class PaginatorViewsTest(TestCase):
         def test_first_page_index_contains_ten_records(self):
