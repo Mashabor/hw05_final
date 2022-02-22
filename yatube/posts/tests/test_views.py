@@ -10,7 +10,10 @@ from django.conf import settings
 from django import forms
 
 from ..models import Post, Group, Comment, Follow
-from ..conf import POSTS_COUNT, TEST_POSTS
+from ..conf import POSTS_COUNT
+
+
+TEST_POSTS = 13
 
 
 User = get_user_model()
@@ -62,6 +65,8 @@ class PostViewsTests(TestCase):
         )
         cls.authorized_user_unfollowing = Client()
         cls.authorized_user_unfollowing.force_login(cls.user_unfollowing)
+
+        Follow.objects.create(user=cls.author, author=cls.user_following)
 
         @classmethod
         def tearDownClass(cls):
@@ -149,6 +154,7 @@ class PostViewsTests(TestCase):
         post_group_0 = first_test_object.group.title
         test_author = response.context['author']
         test_posts_amount = response.context['posts_amount']
+        self.assertFalse(response.context['following'])
         self.assertEqual(
             post_author_0,
             'NoName'
@@ -163,6 +169,15 @@ class PostViewsTests(TestCase):
         )
         self.assertEqual(test_author, self.author)
         self.assertEqual(test_posts_amount, self.author.posts.count())
+
+    def test_profile_page_follower(self):
+        """Шаблон profile для фолловера."""
+        response = self.authorized_client.get(reverse(
+            'posts:profile', kwargs={'username': 'user-following'}
+        ))
+        test_author = response.context['author']
+        self.assertTrue(response.context['following'])
+        self.assertEqual(test_author, self.user_following)
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -248,14 +263,14 @@ class PostViewsTests(TestCase):
         client.get(
             reverse(
                 'posts:profile_follow',
-                args=[author.username]
+                args=[user]
             )
         )
         follower = Follow.objects.filter(
-            user=user,
-            author=author
+            user=author,
+            author=self.user_unfollowing
         ).exists()
-        self.assertFalse(
+        self.assertTrue(
             follower,
             'Подписка невозможна'
         )
@@ -268,20 +283,19 @@ class PostViewsTests(TestCase):
         client.get(
             reverse(
                 'posts:profile_unfollow',
-                args=[author.username]
+                args=[user]
             ),
-
         )
         follower = Follow.objects.filter(
-            user=user,
-            author=author
+            user=author,
+            author=self.user_following
         ).exists()
         self.assertFalse(
             follower,
             'Отписка невозможна'
         )
 
-    def test_new_post_showing_for_followers_and_unfollowers(self):
+    def test_new_post_showing_for_followers(self):
         follow_post = Post.objects.create(
             text='test-text', author=self.author
         )
@@ -294,22 +308,26 @@ class PostViewsTests(TestCase):
         follower_response = (
             self.authorized_user_following.get(reverse('posts:follow_index'))
         )
-        non_follower_response = (
-            self.authorized_user_unfollowing.get(reverse('posts:follow_index'))
-        )
         self.assertEqual(following_count, 1)
         self.assertIn(follow_post, follower_response.context.get('page_obj'))
-        self.assertNotIn(
-            follow_post,
-            non_follower_response.context.get('page_obj')
-        )
 
-        self.authorized_user_following.get(reverse(
+    def test_new_post_showing_for_unfollowers(self):
+        unfollow_post = Post.objects.create(
+            text='test-text', author=self.author
+        )
+        unfollower_response = (
+            self.authorized_user_unfollowing.get(reverse('posts:follow_index'))
+        )
+        self.assertNotIn(
+            unfollow_post,
+            unfollower_response.context.get('page_obj')
+        )
+        self.authorized_user_unfollowing.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': self.author})
         )
-        follow_count = Follow.objects.filter(author=self.author).count()
-        self.assertEqual(follow_count, 0)
+        unfollowing_count = Follow.objects.filter(author=self.author).count()
+        self.assertEqual(unfollowing_count, 0)
 
     class PaginatorViewsTest(TestCase):
         def test_first_page_index_contains_ten_records(self):

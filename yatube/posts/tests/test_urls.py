@@ -48,7 +48,7 @@ class PostURLTests(TestCase):
             response.status_code,
             HTTPStatus.NOT_FOUND
         )
-
+        
     def test_create_url_redirect_guest_client(self):
         url = reverse('posts:post_create')
         response = self.guest_client.get(url)

@@ -84,27 +84,3 @@ class PostFormTests(TestCase):
         )
         base_post_new = Post.objects.get(id=1)
         self.assertNotEqual(base_post.text, base_post_new.text)
-
-    def test_comment_guest_not_added(self):
-        comments_count = Comment.objects.count()
-        form_data = {
-            'text': 'Комментарий от комментатора'
-        }
-        self.client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
-            data=form_data,
-            follow=True
-        )
-        self.assertEqual(Comment.objects.count(), comments_count)
-
-    def test_comment_authorized_added(self):
-        comments_count = Comment.objects.count()
-        form_data = {
-            'text': 'Комментарий от комментатора'
-        }
-        self.authorized_client.post(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
-            data=form_data,
-            follow=True
-        )
-        self.assertEqual(Comment.objects.count(), comments_count + 1)
