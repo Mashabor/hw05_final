@@ -33,7 +33,7 @@ def profile(request, username):
     user = request.user
     following = False
     if user.is_authenticated:
-        following = Follow.objects.filter(user=request.user, author=author)
+        following = Follow.objects.filter(user=request.user, author=author).exists()
     context = {
         'author': author,
         'posts_amount': posts_amount,
@@ -128,12 +128,9 @@ def profile_follow(request, username):
         user=request.user,
         author=author
     ).exists()
-    if author == request.user or follower:
-        return redirect(
-            'posts:profile',
-            username=username
-        )
-    Follow.objects.create(user=request.user, author=author)
+    # Если ниже поставить and вместо or, то при подписке возникает ошибка. А вот так все работает с одним редиректом
+    if author != request.user or follower:
+        Follow.objects.create(user=request.user, author=author)
     return redirect(
         'posts:profile',
         username=username
